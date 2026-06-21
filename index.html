@@ -1,92 +1,72 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html>
 <head>
 <meta charset="UTF-8">
 <title>大学生生存模拟器</title>
 
 <style>
-body{
-    margin:0;
+body {
+    background: #0f1115;
+    color: white;
     font-family: Arial;
-    background:#0f1115;
-    color:white;
 }
 
-#app{
-    display:flex;
-    gap:20px;
-    padding:20px;
+#container {
+    display: flex;
+    gap: 20px;
 }
 
-/* 左侧状态栏 */
-.panel{
-    background:#1c1f26;
-    padding:15px;
-    border-radius:10px;
-    min-width:200px;
+.panel {
+    background: #1c1f26;
+    padding: 15px;
+    border-radius: 10px;
 }
 
-/* 中间操作区 */
-.center{
-    flex:1;
-    background:#151922;
-    padding:15px;
-    border-radius:10px;
+button {
+    padding: 10px;
+    margin: 5px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: none;
 }
 
-/* 日志 */
-#log{
-    height:250px;
-    overflow:auto;
-    background:#0b0d10;
-    padding:10px;
-    border-radius:8px;
-    font-size:14px;
+button:hover {
+    background: #444;
 }
 
-button{
-    margin:5px;
-    padding:10px;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-}
-
-button:hover{
-    background:#444;
-}
-
-select{
-    padding:5px;
+#log {
+    height: 200px;
+    overflow-y: auto;
+    background: #111;
+    padding: 10px;
 }
 </style>
+
 </head>
 
 <body>
 
-<h2 style="padding:10px;">🎮 大学生生存模拟器</h2>
+<h1>🎮 大学生生存模拟器</h1>
 
-<div id="app">
+<div id="container">
 
-<!-- 状态栏（重点修复） -->
+<!-- 状态栏 -->
 <div class="panel">
 <h3>📊 状态</h3>
-
-HP: <span id="hp">0</span><br>
-精神: <span id="mental">0</span><br>
-金钱: <span id="money">0</span><br>
-压力: <span id="pressure">0</span><br>
-幸福: <span id="happiness">0</span><br>
-
+HP: <span id="hp"></span><br>
+精神: <span id="mental"></span><br>
+金钱: <span id="money"></span><br>
+压力: <span id="pressure"></span><br>
 </div>
 
 <!-- 操作区 -->
-<div class="center">
+<div class="panel">
 <h3>🎯 行动</h3>
 
-<button onclick="safeCall('_dormitory')">🏠 宿舍</button>
-<button onclick="safeCall('_playground')">🏃 操场</button>
-<button onclick="safeCall('_outside')">💼 打工</button>
+<button onclick="playClick();Module._dormitory()">🏠 宿舍</button>
+<button onclick="playStudy();study()">📚 学习</button>
+<button onclick="playClick();Module._playground()">🏃 操场</button>
+<button onclick="playWork();Module._outside()">💼 打工</button>
 
 <br><br>
 
@@ -98,85 +78,74 @@ HP: <span id="hp">0</span><br>
 <option value="4">英语</option>
 </select>
 
-<button onclick="study()">📚 学习</button>
+</div>
 
-<hr>
-
+<!-- 日志 -->
+<div class="panel" style="width:300px;">
 <h3>📜 日志</h3>
 <div id="log"></div>
-
 </div>
 
 </div>
 
-<!-- Emscripten -->
-<script src="game.js"></script>
+
 
 <script>
+/* ================= UI ================= */
 
-/* ================= 安全调用（防炸） ================= */
-function safeCall(func){
-    if(!Module){
-        console.log("Module not ready");
-        return;
-    }
-
-    if(typeof Module[func] !== "function"){
-        console.log(func + " not found");
-        return;
-    }
-
-    Module[func]();
-    refreshUI();
+function addLog(text){
+    const log = document.getElementById("log");
+    log.innerHTML += text + "<br>";
+    log.scrollTop = log.scrollHeight;
 }
 
-/* ================= 学习 ================= */
+function refreshUI(){
+    document.getElementById("hp").innerText = Module._getHP();
+    document.getElementById("mental").innerText = Module._getMental();
+    document.getElementById("money").innerText = Module._getMoney();
+    document.getElementById("pressure").innerText = Module._getPressure();
+}
+
+/* ================= 音效系统 ================= */
+
+const clickSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-select-click-1109.mp3");
+const studySound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-pencil-writing-on-paper-1210.mp3");
+const workSound = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-coins-handling-1939.mp3");
+
+/* 防止浏览器限制 */
+function playClick(){
+    clickSound.currentTime = 0;
+    clickSound.play();
+}
+
+function playStudy(){
+    studySound.currentTime = 0;
+    studySound.play();
+}
+
+function playWork(){
+    workSound.currentTime = 0;
+    workSound.play();
+}
+
+/* ================= 学习接口 ================= */
+
 function study(){
     let c = document.getElementById("course").value;
     Module._library(c);
-    refreshUI();
+    playStudy();
 }
 
-/* ================= 日志 ================= */
-function addLog(text){
-    document.getElementById("log").innerHTML += text + "<br>";
-}
+/* ================= WASM挂载 ================= */
 
-/* ================= UI刷新（核心修复） ================= */
-function refreshUI(){
-    if(!Module) return;
-
-    document.getElementById("hp").innerText =
-        Module._getHP ? Module._getHP() : 0;
-
-    document.getElementById("mental").innerText =
-        Module._getMental ? Module._getMental() : 0;
-
-    document.getElementById("money").innerText =
-        Module._getMoney ? Module._getMoney() : 0;
-
-    document.getElementById("pressure").innerText =
-        Module._getPressure ? Module._getPressure() : 0;
-
-    document.getElementById("happiness").innerText =
-        Module._getHappiness ? Module._getHappiness() : 0;
-}
-
-/* ================= 初始化（关键修复点） ================= */
 var Module = {
     onRuntimeInitialized: function(){
-
         Module._initGame();
-
-        // ⭐ 延迟刷新避免 undefined
-        setTimeout(() => {
-            refreshUI();
-            addLog("🎮 游戏已加载完成");
-        }, 100);
+        refreshUI();
+        addLog("🎮 游戏开始");
     }
 };
-
 </script>
-
+<script src="game.js"></script>
 </body>
 </html>
