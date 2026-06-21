@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>大学生生存模拟器</title>
+
+<style>
+body{
+    margin:0;
+    font-family: Arial;
+    background:#0f1115;
+    color:white;
+}
+
+#app{
+    display:flex;
+    gap:20px;
+    padding:20px;
+}
+
+/* 左侧状态栏 */
+.panel{
+    background:#1c1f26;
+    padding:15px;
+    border-radius:10px;
+    min-width:200px;
+}
+
+/* 中间操作区 */
+.center{
+    flex:1;
+    background:#151922;
+    padding:15px;
+    border-radius:10px;
+}
+
+/* 日志 */
+#log{
+    height:250px;
+    overflow:auto;
+    background:#0b0d10;
+    padding:10px;
+    border-radius:8px;
+    font-size:14px;
+}
+
+button{
+    margin:5px;
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+
+button:hover{
+    background:#444;
+}
+
+select{
+    padding:5px;
+}
+</style>
+</head>
+
+<body>
+
+<h2 style="padding:10px;">🎮 大学生生存模拟器</h2>
+
+<div id="app">
+
+<!-- 状态栏（重点修复） -->
+<div class="panel">
+<h3>📊 状态</h3>
+
+HP: <span id="hp">0</span><br>
+精神: <span id="mental">0</span><br>
+金钱: <span id="money">0</span><br>
+压力: <span id="pressure">0</span><br>
+幸福: <span id="happiness">0</span><br>
+
+</div>
+
+<!-- 操作区 -->
+<div class="center">
+<h3>🎯 行动</h3>
+
+<button onclick="safeCall('_dormitory')">🏠 宿舍</button>
+<button onclick="safeCall('_playground')">🏃 操场</button>
+<button onclick="safeCall('_outside')">💼 打工</button>
+
+<br><br>
+
+<select id="course">
+<option value="0">微积分</option>
+<option value="1">模电</option>
+<option value="2">大物</option>
+<option value="3">数据结构</option>
+<option value="4">英语</option>
+</select>
+
+<button onclick="study()">📚 学习</button>
+
+<hr>
+
+<h3>📜 日志</h3>
+<div id="log"></div>
+
+</div>
+
+</div>
+
+<!-- Emscripten -->
+<script src="game.js"></script>
+
+<script>
+
+/* ================= 安全调用（防炸） ================= */
+function safeCall(func){
+    if(!Module){
+        console.log("Module not ready");
+        return;
+    }
+
+    if(typeof Module[func] !== "function"){
+        console.log(func + " not found");
+        return;
+    }
+
+    Module[func]();
+    refreshUI();
+}
+
+/* ================= 学习 ================= */
+function study(){
+    let c = document.getElementById("course").value;
+    Module._library(c);
+    refreshUI();
+}
+
+/* ================= 日志 ================= */
+function addLog(text){
+    document.getElementById("log").innerHTML += text + "<br>";
+}
+
+/* ================= UI刷新（核心修复） ================= */
+function refreshUI(){
+    if(!Module) return;
+
+    document.getElementById("hp").innerText =
+        Module._getHP ? Module._getHP() : 0;
+
+    document.getElementById("mental").innerText =
+        Module._getMental ? Module._getMental() : 0;
+
+    document.getElementById("money").innerText =
+        Module._getMoney ? Module._getMoney() : 0;
+
+    document.getElementById("pressure").innerText =
+        Module._getPressure ? Module._getPressure() : 0;
+
+    document.getElementById("happiness").innerText =
+        Module._getHappiness ? Module._getHappiness() : 0;
+}
+
+/* ================= 初始化（关键修复点） ================= */
+var Module = {
+    onRuntimeInitialized: function(){
+
+        Module._initGame();
+
+        // ⭐ 延迟刷新避免 undefined
+        setTimeout(() => {
+            refreshUI();
+            addLog("🎮 游戏已加载完成");
+        }, 100);
+    }
+};
+
+</script>
+
+</body>
+</html>
